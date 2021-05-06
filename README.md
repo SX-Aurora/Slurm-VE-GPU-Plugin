@@ -327,6 +327,10 @@ A simple example of a two node MPI job script that starts the
 smpirun -nn 2 -ppn 16 ./a.out myargs
 ```
 
+The `smpirun` wrapper is creating a machinefile for the first `mpid`
+in the current working directory. This file will be removed when
+`smpirun` finishes.
+
 
 **Limitations:**
 
