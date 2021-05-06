@@ -1,0 +1,44 @@
+#!/bin/bash
+
+# TODO: parse args, prepare for mpirun command
+
+export VEHCALIST=$(which vehcalist 2>/dev/null)
+if [ -z "$VEHCALIST" ]; then
+   echo "'vehcalist' utility not found in path. Exiting."
+   exit 1
+fi
+
+export MPIDPATH=${MPIDPATH:-/opt/nec/ve/mpi/libexec/mpid}
+export SMPIRUN_MACHFILE=$PWD/slurm_machinefile_J${SLURM_JOBID}_N${SLURM_NODEID}
+export NMPI_PORT_RANGE=${NMPI_PORT_RANGE:-25257:25266}
+export NMPI_RETRY_CONNECT=${NMPI_RETRY_CONNECT:-10}
+export NMPI_INTERVAL_CONNECT=${NMPI_INTERVAL_CONNECT:-1}
+export _NECMPI_JOBTYPE=BATCH
+export _NECMPI_REQID=$SLURM_JOB_ID
+export _NECMPI_MID=$SLURM_NODEID
+export _NECMPI_VH_NODENUM=$SLURM_NODEID
+export _NECMPI_VH_NUM_NODES=$SLURM_NNODES
+export PBS_ENVIRONMENT=PBS_BATCH
+export NQSII_MPI_OUTPUT=JOB
+
+srun -N $SLURM_NNODES -n $SLURM_NNODES --ntasks-per-node=1 /bin/bash <<'EOI' &
+export _NECMPI_VH_NODENUM=$SLURM_NODEID
+export _NECMPI_VH_NUM_NODES=$SLURM_NNODES
+if [ $SLURM_NODEID -eq 0 ]; then
+   [ -e "$SMPIRUN_MACHFILE" ] && rm -f "$SMPIRUN_MACHFILE"
+   for h in $(scontrol show hostname $SLURM_STEP_NODELIST); do
+      echo $h >> $SMPIRUN_MACHFILE
+   done
+   export _NECMPI_VH_NODEFILE="$SMPIRUN_MACHFILE"
+fi
+if [ $SLURM_NNODES -gt 1 ]; then
+   export _NEC_HCA_LIST_MPI="$($VEHCALIST)"
+fi
+$MPIDPATH
+EOI
+
+/opt/nec/ve/bin/mpirun $*
+
+if [ -f $SMPIRUN_MACHFILE ]; then
+   rm -f $SMPIRUN_MACHFILE
+fi

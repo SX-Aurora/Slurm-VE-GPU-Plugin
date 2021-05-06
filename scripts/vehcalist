@@ -1,0 +1,40 @@
+#!/bin/bash
+
+#
+# construct HCA list from a config file with the format
+#
+# <ve id> [<ve id> ...] => <hca>[,<hca>]
+# ...
+# CPU => <hca>[,<hca>]
+#
+# by using the _VENODELIST variable content.
+
+HCACONF=${HCACONF:-/etc/slurm/vehca.conf}
+
+declare -A VEHCA
+CPUHCA=
+while read line; do
+    veIds=$(echo $line | sed -e 's,^ *,,g' -e 's, *=>.*$,,')
+    hca=$(echo $line | sed -e 's,^.*=> *,,')
+    for veId in $veIds; do
+        VEHCA[$veId]=$hca
+    done
+done < <(egrep -v "^#" $HCACONF | egrep -v "^ *$" | egrep -v "^CPU" )
+while read line; do
+    CPUHCA=$(echo $line | sed -e 's,^.*=> *,,')
+done < <(egrep -v "^#" $HCACONF | egrep -v "^ *$" | egrep "^CPU *" )
+
+OUT=
+if [ -z "$_VENODELIST" ]; then
+    OUT=$CPUHCA
+else
+    for veId in $_VENODELIST; do
+        if [ -z "$OUT" ]; then
+            OUT=${VEHCA[$veId]}
+        else
+            OUT="$OUT ${VEHCA[$veId]}"
+        fi
+    done
+fi
+echo $OUT
+
