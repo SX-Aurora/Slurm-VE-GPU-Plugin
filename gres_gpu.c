@@ -134,7 +134,8 @@ static int _count_ves(char *src)
 static void _set_ve_env_vars(char ***env_ptr, char *local_list)
 {
 	char *p, *q, *velist, buf[16];
-	int nnodes = 0;
+	int slurm_nnodes = 0;
+        int num_ves = 0;
         
         velist = xstrdup(local_list);
         _replace_commas(velist);
@@ -142,6 +143,10 @@ static void _set_ve_env_vars(char ***env_ptr, char *local_list)
 	env_array_overwrite(env_ptr, "VEDA_VISIBLE_DEVICES", velist);
 	env_array_overwrite(env_ptr, "_VENODELIST", velist);
 	env_array_overwrite(env_ptr, "_NECMPI_VE_NODELIST", velist);
+
+        num_ves = _count_ves(velist);
+	sprintf(buf, "%d", num_ves);
+	env_array_overwrite(env_ptr, "_NECMPI_VE_NUM_NODES", buf);
 
 	// set VE_NODE_NUMBER if we find SLURM_LOCALID
 	if ((p = getenvp(*env_ptr, "SLURM_LOCALID")) != NULL) {
@@ -160,25 +165,23 @@ static void _set_ve_env_vars(char ***env_ptr, char *local_list)
 		*p = '\0';
 		env_array_overwrite(env_ptr, "VE_NODE_NUMBER", local_ve);
 		xfree(q);
-	}
+	} else if (num_ves == 1)
+		env_array_overwrite(env_ptr, "VE_NODE_NUMBER", velist);
 
 	if ((p = getenvp(*env_ptr, "SLURM_NNODES")) != NULL) {
 		env_array_overwrite(env_ptr, "_NECMPI_VH_NUM_NODES",
 				    xstrdup(p));
-		nnodes = atoi(p);
+		slurm_nnodes = atoi(p);
 	}
 
 	if (!getenvp(*env_ptr, "_NECMPI_JOBTYPE")) {
-		if (nnodes == 1)
+		if (slurm_nnodes == 1)
 			env_array_overwrite(env_ptr, "_NECMPI_JOBTYPE",
 					    "DISTRIB");
 		else
 			env_array_overwrite(env_ptr, "_NECMPI_JOBTYPE",
 					    "BATCH");
 	}
-
-	sprintf(buf, "%d", _count_ves(velist));
-	env_array_overwrite(env_ptr, "_NECMPI_VE_NUM_NODES", buf);
 
 	p = xstrdup(getenvp(*env_ptr, "SLURM_JOB_ID"));
 	env_array_overwrite(env_ptr, "PBS_JOBID", p);
