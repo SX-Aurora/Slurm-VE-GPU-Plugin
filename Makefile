@@ -4,7 +4,9 @@
 # to be specified with the env (or make) variable SLURM_SRC
 #
 CC = gcc
-SLURM_SRC ?= ../slurm-20.11.5-2ve_build
+SVER ?= 20.11.6
+SREL ?= 1ve
+SLURM_SRC ?= $(HOME)/rpmbuild/BUILD/slurm-$(SVER)-$(SREL)
 CFLAGS = -DHAVE_CONFIG_H -std=gnu99 -pthread -Wall -g -fno-strict-aliasing -fPIC -I$(SLURM_SRC) -DNEC_DEBUG
 LDFLAGS = -shared -Wl,--whole-archive $(SLURM_SRC)/src/plugins/gres/common/.libs/libgres_common.a -Wl,--no-whole-archive -pthread -Wl,-soname -Wl,gres_gpu.so
 
@@ -31,9 +33,6 @@ install-plugin: plugin
 #
 # build inside SLURM rpms
 #
-
-SVER ?= 20.11.6
-SREL ?= 1ve
 
 slurm-rpms:
 	sudo yum install -y lua-devel pmix-devel
