@@ -131,10 +131,13 @@ static int _count_ves(char *src)
     PBS_JOBID: needed for some internal check...
 */
 
-static void _set_ve_env_vars(char ***env_ptr, char *velist)
+static void _set_ve_env_vars(char ***env_ptr, char *local_list)
 {
-	char *p, buf[16];
+	char *p, *q, *velist, buf[16];
 	int nnodes = 0;
+        
+        velist = xstrdup(local_list);
+        _replace_commas(velist);
 
 	env_array_overwrite(env_ptr, "VEDA_VISIBLE_DEVICES", velist);
 	env_array_overwrite(env_ptr, "_VENODELIST", velist);
@@ -145,7 +148,7 @@ static void _set_ve_env_vars(char ***env_ptr, char *velist)
 		int local_id = atoi(p);
 		
 		// skip until local_id'th VE
-		char *local_ve = xstrdup(velist);
+		char *local_ve = q = xstrdup(velist);
 		for (int i = 0; i < local_id; i++) {
 			while (*local_ve && isdigit(*local_ve))
 				local_ve++;
@@ -156,7 +159,7 @@ static void _set_ve_env_vars(char ***env_ptr, char *velist)
 		while (*p && isdigit(*p)) p++;
 		*p = '\0';
 		env_array_overwrite(env_ptr, "VE_NODE_NUMBER", local_ve);
-		xfree(local_ve);
+		xfree(q);
 	}
 
 	if ((p = getenvp(*env_ptr, "SLURM_NNODES")) != NULL) {
@@ -188,6 +191,7 @@ static void _set_ve_env_vars(char ***env_ptr, char *velist)
 				    xstrdup(p));
 	}
 #endif
+	xfree(velist);
 }
 
 /* ===================================================================== */
@@ -257,7 +261,6 @@ static void _set_env(char ***env_ptr, void *gres_ptr, int node_inx,
 			env_ptr, "ROCR_VISIBLE_DEVICES", local_list);
 
 		if (gpu_is_ve) {
-			_replace_commas(local_list);
 			_set_ve_env_vars(env_ptr, local_list);
 		}
 		xfree(local_list);
