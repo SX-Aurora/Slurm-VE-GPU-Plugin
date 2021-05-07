@@ -152,7 +152,11 @@ static void _set_ve_env_vars(char ***env_ptr, char *local_list)
 		for (int i = 0; i < local_id; i++) {
 			while (*local_ve && isdigit(*local_ve))
 				local_ve++;
-			local_ve++;
+			if (!*local_ve) {
+				local_ve = q;
+			} else {
+				local_ve++;
+			}
 		}
 		// VE_NODE_NUMBER set to local_id'th VE in the list.
 		p = local_ve;
