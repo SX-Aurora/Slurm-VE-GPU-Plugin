@@ -143,7 +143,14 @@ static void _set_ve_env_vars(char ***env_ptr, char *local_list)
 	env_array_overwrite(env_ptr, "_VENODELIST", velist);
 	env_array_overwrite(env_ptr, "_NECMPI_VE_NODELIST", velist);
 
-	// set VE_NODE_NUMBER if we find SLURM_LOCALID
+	// Set VE_NODE_NUMBER:
+	// . To first VE of the list if SLURM_LOCALID is not set.
+	// . To local_id'th VE in the list if SLURM_LOCALID is set, using
+	//   round robin manner.
+	//
+	// This can be overwrite by TaskPlugin, for example if
+	// SLURMD_TRES_BIND is not set (ie user did not ask for specific
+	// binding).
 	if ((p = getenvp(*env_ptr, "SLURM_LOCALID")) != NULL) {
 		int local_id = atoi(p);
 		
@@ -164,6 +171,13 @@ static void _set_ve_env_vars(char ***env_ptr, char *local_list)
 		*p = '\0';
 		env_array_overwrite(env_ptr, "VE_NODE_NUMBER", local_ve);
 		xfree(q);
+	} else {
+		char *local_ve = xstrdup(velist);
+		p = local_ve;
+		while (*p && isdigit(*p)) p++;
+		*p = '\0';
+		env_array_overwrite(env_ptr, "VE_NODE_NUMBER", local_ve);
+		xfree(local_ve);
 	}
 
 	if ((p = getenvp(*env_ptr, "SLURM_NNODES")) != NULL) {
