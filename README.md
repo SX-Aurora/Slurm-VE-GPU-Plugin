@@ -203,7 +203,7 @@ TaskProlog=/etc/slurm/taskprolog.sh
 GresTypes=gpu
 DebugFlags=NodeFeatures,Gres
 ...
-NodeName=aurora[0-7] Gres=ve1:2 CPUs=24 Boards=1 SocketsPerBoard=1 CoresPerSocket=12 ThreadsPerCore=2 RealMemory=95116 State=UNKNOWN
+NodeName=aurora[0-7] Gres=gpu:ve1:2 CPUs=24 Boards=1 SocketsPerBoard=1 CoresPerSocket=12 ThreadsPerCore=2 RealMemory=95116 State=UNKNOWN
 ```
 
 Configure the VE to Infiniband HCA assignment in
